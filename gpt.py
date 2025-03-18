@@ -5,12 +5,14 @@ import base64
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 prompt = (
-    "what's happening through the frames of this gameplay. "
-    "Highlight the environment style, the environment layout - What elements are included in the environment. "
-    "The environment dynamics - Overall environmental movements and movements of specific elements. "
-    "Character-environment interactions - Includes character-NPC/enemy interactions and character-environment object interactions."
+    "The following frames show a classic NES-style platformer."
+    "Describe the scene's visual environment style, as well as what is happening."
+    "Look at all frames and explain the level design - what platforms, hazards, and collectibles are visible and how they're arranged"
+    "Describe what is happening across these frames how things move or change (e.g., Mario's actions and any moving elements)."
+    "Also mention interactions between the hero and any enemies, items, and the environment."
+    "Summarize the following in a succinct, precise, and detailed paragraph."
 )
-folder_path = "./output_test_smb/test_00001"
+folder_path = "./output_test_smb/test_00002"
 
 
 def encode_image(image_path):
@@ -38,7 +40,7 @@ for filename in os.listdir(folder_path):
 
 response = client.chat.completions.create(
     model="gpt-4o-2024-11-20",
-    max_tokens=1000,
+    max_tokens=500,
     messages=[{"role": "user", "content": message_content}],
 )
 
@@ -49,8 +51,26 @@ finish_reason = response.choices[0].finish_reason
 print("Response:")
 print(output)
 
-# Optionally, write the response to a file.
-with open("response.txt", "w") as f:
+
+def get_unique_filename(filename):
+    """Generate a unique filename by appending _1, _2, etc., if the file already exists."""
+    base, ext = os.path.splitext(filename)
+    counter = 1
+    new_filename = filename
+
+    while os.path.exists(new_filename):
+        new_filename = f"{base}_{counter}{ext}"
+        counter += 1
+
+    return new_filename
+
+
+# Example usage:
+filename = get_unique_filename("responses/response.txt")
+
+
+with open(filename, "w") as f:
     f.write(
         f"Output:\n{output}\n{'=' * 50}\nTokens_used: {tokens_used}\n{'=' * 50}\nFinish reason: {finish_reason}"
     )
+    print(f"Output file: {filename}")

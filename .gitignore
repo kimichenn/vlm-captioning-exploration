@@ -176,3 +176,5 @@ cython_debug/
 
 
 output_test_smb/*
+responses/*
+!responses/.gitkeep
