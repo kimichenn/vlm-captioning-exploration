@@ -1,18 +1,23 @@
 from openai import OpenAI
+from pydantic import BaseModel
 import os
 import base64
 
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-prompt = (
-    "The following frames show a classic NES-style platformer."
-    "Describe the scene's visual environment style, as well as what is happening."
-    "Look at all frames and explain the level design - what platforms, hazards, and collectibles are visible and how they're arranged"
-    "Describe what is happening across these frames how things move or change (e.g., Mario's actions and any moving elements)."
-    "Also mention interactions between the hero and any enemies, items, and the environment."
-    "Summarize the following in a succinct, precise, and detailed paragraph."
-)
-folder_path = "./output_test_smb/test_00002"
+folder_path = "./output_test_smb/test_set_new"
+
+basic = "The following images are frames from a 2D NES-styled side-scrolling platformer. Describe the overall frames in detail, noting the environment style, environment layout, environment dynamics, and any character-NPC interactions and character-environment object interactions. Write your response in a detailed but succinct paragraph."
+cot = "The following images are frames from a 2D NES-styled side-scrolling platformer. Analyze the frames step by step, (1) Describe the background and art style, (2) list key objects and terrain and their spatial location and layout on screen, (3) note any motion or changes (or the lack of), (4) describe how the character interacts with the enemies and environment objects. What action is occurring? Finally, compile this information into a descriptive paragraph without removing any detail or information."
+structured = "The following images are frames from a 2D NES-styled side-scrolling platformer. Describe the over frames in detail, specifically on the following aspects: (a) Environment style (e.g. art style, atmosphere), (b) Environment layout (key platforms, terrain, objects visible, hero, etc.) and their spatial locations, (c) Dynamics (any movement or action ongoing), and (d) Character-environment interactions (how characters or NPCs are interacting with objects or each other). Answer in complete sentences."
+role_system = "You are a game analyst describing scenes for a walkthrough. You should give a detailed, enumerative description covering all aspects of the scene. Base your explanation on truth and not predictive ideas."
+
+
+class StructuredOutput(BaseModel):
+    environment_style: str
+    environment_layout: str
+    environment_dynamics: str
+    character_environment_interactions: str
 
 
 def encode_image(image_path):
@@ -21,7 +26,7 @@ def encode_image(image_path):
 
 
 # Create the base content with the text prompt.
-message_content = [{"type": "text", "text": prompt}]
+message_content = [{"type": "text", "text": basic}]
 
 # Iterate over each image file in the folder and append an image block for each.
 for filename in os.listdir(folder_path):
@@ -40,9 +45,28 @@ for filename in os.listdir(folder_path):
 
 response = client.chat.completions.create(
     model="gpt-4o-2024-11-20",
-    max_tokens=500,
+    max_tokens=1000,
     messages=[{"role": "user", "content": message_content}],
 )
+
+# For Structured
+# response = client.beta.chat.completions.parse(
+#     model="gpt-4o-2024-11-20",
+#     max_tokens=1000,
+#     messages=[{"role": "user", "content": message_content}],
+#     response_format=StructuredOutput,
+# )
+
+# For Roles
+# response = client.chat.completions.create(
+#     model="gpt-4o-2024-11-20",
+#     max_tokens=1000,
+#     messages=[
+#         {"role": "developer", "content": role_system},
+#         {"role": "user", "content": message_content},
+#     ],
+# )
+
 
 output = response.choices[0].message.content
 tokens_used = response.usage.total_tokens
@@ -65,8 +89,7 @@ def get_unique_filename(filename):
     return new_filename
 
 
-# Example usage:
-filename = get_unique_filename("responses/response.txt")
+filename = get_unique_filename("responses/GPT_response.txt")
 
 
 with open(filename, "w") as f:
